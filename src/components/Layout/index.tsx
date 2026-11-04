@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 
@@ -11,7 +10,6 @@ interface LayoutProps {
 
 const Layout = ({ children, isDarkMode, setIsDarkMode }: LayoutProps) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const navigate = useNavigate();
 
   const mockUser = {
     name: "John Doe",

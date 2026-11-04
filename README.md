@@ -1,72 +1,113 @@
 # Leave Management Frontend
 
-Frontend for a leave management system, built with React, TypeScript, Vite, and Tailwind CSS.
+A React + TypeScript single-page app for requesting, approving, and tracking
+employee leave: applying for leave, viewing leave balances, approving a
+team's pending requests, managing public holidays, assigning user roles, and
+a team calendar / notifications view.
+
+It is the frontend half of a two-repo system. The backend is
+[`leave-management-api`](https://github.com/YannVladimir/leave-management-api),
+a Spring Boot REST API (Java 21, PostgreSQL, Microsoft OAuth2 + JWT). This
+app is a plain client of that API over HTTP/JSON — it holds no business logic
+of its own beyond form validation and presentation.
 
 ## Tech stack
 
 - React 19 + TypeScript
-- Vite
-- Tailwind CSS
+- Vite (build tool / dev server)
+- React Router (client-side routing)
+- Tailwind CSS (styling)
+- Heroicons (icons)
+- Vitest + React Testing Library (tests)
 - ESLint
+
+## Project structure
+
+```
+src/
+├── components/     # Shared UI (Layout, Header, Sidebar, AsyncState, ...)
+├── hooks/          # useAsync - data fetching with loading/error state
+├── pages/          # One component per route (Dashboard, ApplyLeave, ...)
+├── services/       # api.ts - fetch wrapper around the backend REST API
+├── types/          # Shared TypeScript types mirroring the API's DTOs
+└── utils/          # Pure helpers (e.g. form validation), easy to unit test
+```
+
+## Prerequisites
+
+- Node.js 20+ and npm
+- A running instance of `leave-management-api` (see that repo's README for
+  how to start it - by default it listens on `http://localhost:8083`)
 
 ## Getting started
 
 ```bash
 npm install
+cp .env.example .env   # adjust VITE_API_BASE_URL if your API isn't on localhost:8083
 npm run dev
 ```
 
----
+The app will be available at the URL Vite prints (typically
+`http://localhost:5173`).
 
-Scaffolded from the official Vite React + TypeScript template.
+## Environment variables
 
-Currently, two official plugins are available:
+| Variable              | Description                                              | Default                        |
+| ---------------------- | --------------------------------------------------------- | ------------------------------- |
+| `VITE_API_BASE_URL`   | Base URL of the `leave-management-api` backend, including the `/api` prefix | `http://localhost:8083/api` |
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+See `.env.example`. Vite only exposes variables prefixed with `VITE_` to
+client code, and `.env*` files (other than `.env.example`) are git-ignored so
+local/deployment-specific URLs never get committed.
 
-## Expanding the ESLint configuration
+## Available scripts
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+| Command           | Description                                      |
+| ------------------ | -------------------------------------------------- |
+| `npm run dev`     | Start the Vite dev server with hot reload          |
+| `npm run build`   | Type-check (`tsc -b`) and build for production     |
+| `npm run preview` | Preview the production build locally              |
+| `npm run lint`    | Run ESLint                                          |
+| `npm test`        | Run the Vitest test suite once                      |
+| `npm run test:watch` | Run Vitest in watch mode                        |
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+## Testing
+
+Tests use Vitest + React Testing Library and live next to the code they
+cover (`*.test.ts` / `*.test.tsx`). They cover:
+
+- Leave request form validation rules (`src/utils/validateLeaveRequest.test.ts`)
+- The API client's error handling, including network failures
+  (`src/services/api.test.ts`)
+- The Apply Leave form's success/validation/error UI states
+  (`src/pages/ApplyLeave.test.tsx`)
+- Sidebar navigation and active-route highlighting
+  (`src/components/Layout/Sidebar.test.tsx`)
+
+Run them with:
+
+```bash
+npm test
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Continuous integration
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+`.github/workflows/ci.yml` runs on every push and pull request to `main`: it
+installs dependencies, lints, runs the test suite, and builds the app, so a
+broken build or failing test is caught before merge.
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
-```
+## Notes on the backend contract
+
+Page-level API calls currently used:
+
+- `GET /leave/balance/my-balances`, `GET /leave-requests/my-requests` - Dashboard
+- `POST /leave-requests` - Apply Leave
+- `GET /leave-requests/team`, `PUT /leave-requests/{id}/approve|reject` - Leave Approval
+- `GET /leave/balance/my-balances` - Leave Balance
+- `GET /holidays`, `POST /holidays`, `GET /holidays/between` - Admin Panel / Team Calendar
+- `GET /users/roles`, `PUT /users/{userId}/roles` - User Roles
+
+The Notifications page currently uses local sample data, since the backend
+does not yet expose a REST endpoint for notifications (only an internal
+email-sending service). Once one exists, swap the sample data for an
+`api.get()` call the same way the other pages do.
