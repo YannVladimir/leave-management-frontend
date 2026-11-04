@@ -37,8 +37,20 @@ const menuItems = [
   { name: "Admin Panel", path: "/admin", icon: CogIcon },
 ];
 
+const MOBILE_BREAKPOINT_QUERY = "(max-width: 768px)";
+
 const Sidebar = ({ isOpen, setIsOpen, currentUser }: SidebarProps) => {
   const location = useLocation();
+
+  // On narrow screens the expanded sidebar covers the page content, so
+  // collapse it automatically once the user picks a destination instead of
+  // leaving it open (and the page hidden behind it) until they toggle it
+  // manually.
+  const handleNavigate = () => {
+    if (isOpen && window.matchMedia(MOBILE_BREAKPOINT_QUERY).matches) {
+      setIsOpen(false);
+    }
+  };
 
   return (
     <aside
@@ -64,6 +76,7 @@ const Sidebar = ({ isOpen, setIsOpen, currentUser }: SidebarProps) => {
               <Link
                 key={item.path}
                 to={item.path}
+                onClick={handleNavigate}
                 className={`${
                   isActive
                     ? "bg-primary-700 text-white"
